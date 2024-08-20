@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Mapa de Localización en Tiempo Real</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #map { 
+            position: absolute; 
+            top: 60px; 
+            bottom: 0; 
+            width: 100%; 
+        }
+        #info-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: #333;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #coordenadas {
+            flex-grow: 1;
+        }
+        #buscarBtn {
+            background-color: #251c42;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        #buscarBtn:hover {
+            background-color: #1a1a1a;
+            color: aliceblue;
+        }
+    </style>
+</head>
+<body>
+    <div id="info-panel">
+        <div id="coordenadas">
+            <span id="latitud">Latitud: </span>
+            <span id="longitud">Longitud: </span>
+        </div>
+        <button id="buscarBtn">Buscar Ubicación</button>
+    </div>
+    <div id="map"></div>
+
+    <script>
+        let latitud, longitud;
+        let map, marker;
+
+        function obtenerCoordenadas() {
+            $.ajax({
+                url: "Localizacion.php",
+                type: "GET",
+                dataType: "json",
+                success: function(data) {
+                    latitud = data.latitud;
+                    longitud = data.longitud;
+                    $("#latitud").text("Latitud: " + latitud);
+                    $("#longitud").text("Longitud: " + longitud);
+                    if (marker) {
+                        marker.setLngLat([longitud, latitud]);
+                    } else {
+                        marker = new mapboxgl.Marker().setLngLat([longitud, latitud]).addTo(map);
+                    }
+                },
+                complete: function() {
+                    setTimeout(obtenerCoordenadas, 5000);
+                }
+            });
+        }
+
+        obtenerCoordenadas();
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoibWJyaXRueXMiLCJhIjoiY2x1ZzZrMjFqMDJubDJpbHJ1MzJicG43ZyJ9.hmxfUD9worat8iuKNluV3Q';
+        map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v10',
+            projection: 'globe',
+            zoom: 2,
+            center: [0, 0]
+        });
+
+        map.addControl(new mapboxgl.NavigationControl());
+
+        map.on('style.load', () => {
+            map.setFog({
+                color: 'rgb(186, 210, 235)',
+                'high-color': 'rgb(36, 92, 223)',
+                'horizon-blend': 0.02,
+                'space-color': 'rgb(11, 11, 25)',
+                'star-intensity': 0.6
+            });
+        });
+
+        const buscarBtn = document.getElementById('buscarBtn');
+        buscarBtn.addEventListener('click', () => {
+            if (latitud && longitud) {
+                map.flyTo({ 
+                    center: [longitud, latitud], 
+                    zoom: 16,
+                    speed: 0.8,
+                    curve: 1,
+                    easing(t) {
+                        return t;
+                    }
+                });
+            } else {
+                alert('Aún no se han obtenido las coordenadas. Por favor, espere un momento.');
+            }
+        });
+    </script>
+</body>
+</html>
